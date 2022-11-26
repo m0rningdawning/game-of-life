@@ -1,22 +1,66 @@
 #include <iostream>
 #include <cstdlib>
-#include <string>
+#include <time.h>
 #include <SFML/Graphics.hpp>
+
+// Settings
 
 #define WIDTH 800
 #define HEIGHT 600
-#define FRAMES 30
+#define FRAMES 15
+#define HORIZONTAL 38
+#define VERTICAL 20
+#define SIZE 20
 
 // grid size 38 x 20 20px
 
+bool isAlive(int arr[VERTICAL][HORIZONTAL], int x, int y){
+
+	int amount = 0;
+
+	// Check neighbours
+	
+	if(x > 0 && arr[x-1][y] == 1) 
+		amount += 1;
+	if(y > 0 && x > 0 && arr[x-1][y-1] == 1) 
+		amount += 1;
+	if(y > 0 && arr[x][y-1] == 1) 
+		amount += 1;
+	if(y > 0 && x < VERTICAL - 1 && arr[x+1][y-1] == 1) 
+		amount += 1;
+	if(x < VERTICAL - 1 && arr[x+1][y] == 1) 
+		amount += 1;
+	if(y < HORIZONTAL - 1 && x < VERTICAL - 1 && arr[x+1][y+1] == 1) 
+		amount += 1;
+	if(y < HORIZONTAL - 1 && arr[x][y+1] == 1) 
+		amount += 1;
+	if(y < HORIZONTAL - 1 && x > 0 && arr[x-1][y+1] == 1) 
+		amount += 1;
+
+	// Decide if a cell is dead or alive
+	
+	if(arr[x][y] == 1 && amount < 2) 
+		return false;
+	if(arr[x][y] == 1 && (amount == 2 || amount == 3)) 
+		return true;
+	if(arr[x][y] == 1 && amount > 3) 
+		return false;
+	if(arr[x][y] == 0 && amount == 3) 
+		return true;
+
+	return false;
+}
+
 int main(void){
+
+	srand(time(NULL));
 
 	// Window
 
     sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "Conway's Game of Life", sf::Style::Close);
 	window.setFramerateLimit(FRAMES);
 	sf::RectangleShape playArea(sf::Vector2f(760.f, 400.f));
-    playArea.setFillColor(sf::Color(255, 255, 255));
+    playArea.setFillColor(sf::Color::White);
 	playArea.setPosition(20.f, 20.f);
 	playArea.setOutlineThickness(1.f);
 	playArea.setOutlineColor(sf::Color(0, 0, 0));
@@ -29,9 +73,9 @@ int main(void){
 	}
 	sf::Text title;
 
-	title.setFont(font); // font is a sf::Font
+	title.setFont(font);
 	title.setString("Conway's Game of Life");
-	title.setCharacterSize(52); // in pixels, not points!
+	title.setCharacterSize(52);
 	title.setFillColor(sf::Color::White);
 	title.setOutlineThickness(1.f);
 	title.setStyle(sf::Text::Bold);
@@ -61,41 +105,91 @@ int main(void){
 	if (!icon_pause.loadFromFile("textures/icons/icons_1/_Pause.png"))
 		perror("icon_play");
 
-	// Cells
+	// Cells & arrays
 	
 	sf::RectangleShape cell(sf::Vector2f(20.f, 20.f));
-	// Main loop
 
+	int state[VERTICAL][HORIZONTAL];
+	int stateNext[VERTICAL][HORIZONTAL];
+
+	for (int i = 0; i < VERTICAL; i++){
+		for (int j = 0; j < HORIZONTAL; j++){
+			state[i][j] = rand() % 2;
+			stateNext[i][j] = 0;
+		}
+	}
+
+	// Main loop
+	
 	bool playingStatus = false;
 
     while (window.isOpen()){
-        sf::Event event;
 
 		// Event polling
+        
+		sf::Event event;
 
         while (window.pollEvent(event)){
-            if (event.type == sf::Event::Closed)
-                window.close();
-			if (event.key.code == sf::Keyboard::Escape)
-				window.close();
+			switch (event.type){
+				case sf::Event::Closed:
+					window.close();
+					break;
+				case sf::Event::MouseButtonPressed:
+					if (event.mouseButton.button == sf::Mouse::Left){
+						int x = (event.mouseButton.y-SIZE)/SIZE;
+						int y = (event.mouseButton.x-SIZE)/SIZE;
+						if (x >= 0 && x < VERTICAL && y >= 0 && y < HORIZONTAL)
+							state[x][y] = !state[x][y];
+					}
+					break;
+				case sf::Event::KeyPressed:
+					if (event.key.code == sf::Keyboard::Escape)
+						window.close();
+					if (event.key.code == sf::Keyboard::Space)
+						playingStatus = !playingStatus;
+					break;
+			}
         }
 
-		// Render
+		// Draw on screen
 
 		window.clear(sf::Color(128, 128, 128));
 		window.draw(playArea);
-		for (int x = 0; x < 38; x++){
-			for (int y = 0; y < 20; y++){
-				cell.setPosition(x * 20 + 20, y * 20 + 20);
-				cell.setOutlineThickness(1.f);
-				cell.setOutlineColor(sf::Color::Black);
-				window.draw(cell);
-			}
-		}
 		window.draw(title);
 		window.draw(button_play);
 		window.draw(button_reset);
-        window.display();
-    }
+
+		// Draw cell
+
+		for (int y = 0; y < VERTICAL; y++){
+			for (int x = 0; x < HORIZONTAL; x++){
+				cell.setPosition(x * SIZE + SIZE, y * SIZE + SIZE);
+				cell.setOutlineThickness(1.f);
+				cell.setOutlineColor(sf::Color::Black);
+				if (state[y][x] == 1)
+                    cell.setFillColor(sf::Color(128, 128, 128));
+                else
+                    cell.setFillColor(sf::Color::White);
+				window.draw(cell);
+		
+				//Check if alive
+
+				if(playingStatus){
+					if(isAlive(state, y, x))
+						stateNext[y][x] = 1;
+					else
+						stateNext[y][x] = 0;
+				}
+			}
+		}
+
+		// Move stateNext array to state
+
+		if (playingStatus)
+			for (int y = 0; y < VERTICAL; y++)
+				for (int x = 0; x < HORIZONTAL; x++)
+					state[y][x] = stateNext[y][x];
+		window.display();
+	}
     return 0;
 }
