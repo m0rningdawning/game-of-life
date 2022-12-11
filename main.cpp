@@ -5,50 +5,57 @@
 
 // Settings
 
+int FRAMES = 15;
 #define WIDTH 800
 #define HEIGHT 600
-#define FRAMES 15
 #define HORIZONTAL 38
 #define VERTICAL 20
 #define SIZE 20
 
-// grid size 38 x 20 20px
-
-bool isAlive(int arr[VERTICAL][HORIZONTAL], int x, int y){
+bool isAlive(int arr[VERTICAL][HORIZONTAL], int y, int x){
 
 	int amount = 0;
 
 	// Check neighbours
 	
-	if(x > 0 && arr[x-1][y] == 1) 
+	if(y > 0 && arr[y-1][x] == 1) 
 		amount += 1;
-	if(y > 0 && x > 0 && arr[x-1][y-1] == 1) 
+	if(x > 0 && y > 0 && arr[y-1][x-1] == 1) 
 		amount += 1;
-	if(y > 0 && arr[x][y-1] == 1) 
+	if(x > 0 && arr[y][x-1] == 1) 
 		amount += 1;
-	if(y > 0 && x < VERTICAL - 1 && arr[x+1][y-1] == 1) 
+	if(x > 0 && y < VERTICAL - 1 && arr[y+1][x-1] == 1) 
 		amount += 1;
-	if(x < VERTICAL - 1 && arr[x+1][y] == 1) 
+	if(y < VERTICAL - 1 && arr[y+1][x] == 1) 
 		amount += 1;
-	if(y < HORIZONTAL - 1 && x < VERTICAL - 1 && arr[x+1][y+1] == 1) 
+	if(x < HORIZONTAL - 1 && y < VERTICAL - 1 && arr[y+1][x+1] == 1) 
 		amount += 1;
-	if(y < HORIZONTAL - 1 && arr[x][y+1] == 1) 
+	if(x < HORIZONTAL - 1 && arr[y][x+1] == 1) 
 		amount += 1;
-	if(y < HORIZONTAL - 1 && x > 0 && arr[x-1][y+1] == 1) 
+	if(x < HORIZONTAL - 1 && y > 0 && arr[y-1][x+1] == 1) 
 		amount += 1;
 
 	// Decide if a cell is dead or alive
 	
-	if(arr[x][y] == 1 && amount < 2) 
+	if(arr[y][x] == 1 && amount < 2) 
 		return false;
-	if(arr[x][y] == 1 && (amount == 2 || amount == 3)) 
+	if(arr[y][x] == 1 && (amount == 2 || amount == 3)) 
 		return true;
-	if(arr[x][y] == 1 && amount > 3) 
+	if(arr[y][x] == 1 && amount > 3) 
 		return false;
-	if(arr[x][y] == 0 && amount == 3) 
+	if(arr[y][x] == 0 && amount == 3) 
 		return true;
 
 	return false;
+}
+
+void randomizeCells(int state[VERTICAL][HORIZONTAL], int stateNext[VERTICAL][HORIZONTAL]){
+	for (int y = 0; y < VERTICAL; y++){
+		for (int x = 0; x < HORIZONTAL; x++){
+			state[y][x] = rand() % 2;
+			stateNext[y][x] = 0;
+		}
+	}
 }
 
 int main(void){
@@ -89,8 +96,8 @@ int main(void){
 	icon_play.setSmooth(true);
 	sf::Sprite button_play;
 	button_play.setTexture(icon_play);
-	button_play.setScale(sf::Vector2f(0.5f, 0.5f));
-	button_play.setPosition(sf::Vector2f(350.f, 500.f));
+	button_play.setScale(sf::Vector2f(1.f, 1.f));
+	button_play.setPosition(sf::Vector2f(358.f, 500.f));
 
 	sf::Texture icon_reset;
 	if (!icon_reset.loadFromFile("textures/icons/icons_1/_Retry.png"))
@@ -99,11 +106,22 @@ int main(void){
 	sf::Sprite button_reset;
 	button_reset.setTexture(icon_reset);
 	button_reset.setScale(sf::Vector2f(0.35f, 0.35f));
-	button_reset.setPosition(sf::Vector2f(440.f, 513.f));
+	button_reset.setPosition(sf::Vector2f(448.f, 513.f));
 
 	sf::Texture icon_pause;
 	if (!icon_pause.loadFromFile("textures/icons/icons_1/_Pause.png"))
-		perror("icon_play");
+		perror("icon_pause");
+	icon_pause.setSmooth(true);
+
+	sf::Texture icon_randomize;
+	if (!icon_randomize.loadFromFile("textures/icons/icons_1/_Randomize.png"))
+		perror("icon_randomize");
+	icon_randomize.setSmooth(true);
+	sf::Sprite button_randomize;
+	button_randomize.setTexture(icon_randomize);
+	button_randomize.setScale(sf::Vector2f(0.35f, 0.35f));
+	button_randomize.setPosition(sf::Vector2f(296.f, 513.f));
+
 
 	// Cells & arrays
 	
@@ -112,12 +130,7 @@ int main(void){
 	int state[VERTICAL][HORIZONTAL];
 	int stateNext[VERTICAL][HORIZONTAL];
 
-	for (int i = 0; i < VERTICAL; i++){
-		for (int j = 0; j < HORIZONTAL; j++){
-			state[i][j] = rand() % 2;
-			stateNext[i][j] = 0;
-		}
-	}
+	randomizeCells(state, stateNext);	
 
 	// Main loop
 	
@@ -136,17 +149,75 @@ int main(void){
 					break;
 				case sf::Event::MouseButtonPressed:
 					if (event.mouseButton.button == sf::Mouse::Left){
-						int x = (event.mouseButton.y-SIZE)/SIZE;
-						int y = (event.mouseButton.x-SIZE)/SIZE;
-						if (x >= 0 && x < VERTICAL && y >= 0 && y < HORIZONTAL)
-							state[x][y] = !state[x][y];
+						int x = (event.mouseButton.x)/SIZE;
+						printf("Mous pos x: %d, %f\n", x, event.mouseButton.x);
+						int y = (event.mouseButton.y)/SIZE;
+						printf("Mous pos y: %d, %f\n", y, event.mouseButton.y);
+						if (x >= 0 && x <= HORIZONTAL && y >= 0 && y <= VERTICAL)
+							state[y-1][x-1] = !state[y-1][x-1];
+
+						sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+						sf::Vector2f mousePosF(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
+						if (button_play.getGlobalBounds().contains(mousePosF)){
+							button_play.setTexture(icon_pause);
+							playingStatus = !playingStatus;
+							if(!playingStatus)
+								button_play.setTexture(icon_play);
+						}
+						if (button_randomize.getGlobalBounds().contains(mousePosF)){
+							playingStatus = false;
+							randomizeCells(state, stateNext);
+							button_play.setTexture(icon_play);
+						}
+						if (button_reset.getGlobalBounds().contains(mousePosF)){
+							playingStatus = false;
+							button_play.setTexture(icon_play);
+							for (int y = 0; y < VERTICAL; y++){
+								for (int x = 0; x < HORIZONTAL; x++){
+									state[y][x] = 0;
+									stateNext[y][x] = 0;
+								}
+							}
+						}
 					}
 					break;
 				case sf::Event::KeyPressed:
 					if (event.key.code == sf::Keyboard::Escape)
 						window.close();
-					if (event.key.code == sf::Keyboard::Space)
+					if (event.key.code == sf::Keyboard::Space){
 						playingStatus = !playingStatus;
+						if (playingStatus){
+							button_play.setTexture(icon_pause);
+						}
+						else {
+							button_play.setTexture(icon_play);
+						}
+					}
+					if (event.key.code == sf::Keyboard::R){
+						playingStatus = false;
+						randomizeCells(state, stateNext);
+						button_play.setTexture(icon_play);
+					}
+					if (event.key.code == sf::Keyboard::C){
+						playingStatus = false;
+						button_play.setTexture(icon_play);
+					    for (int y = 0; y < VERTICAL; y++){
+							for (int x = 0; x < HORIZONTAL; x++){
+								state[y][x] = 0;
+								stateNext[y][x] = 0;
+							}
+						}
+					}
+					if (event.key.code == sf::Keyboard::Down){
+						if (FRAMES > 5)
+							FRAMES -= 5;
+						window.setFramerateLimit(FRAMES);
+					}
+					if (event.key.code == sf::Keyboard::Up){
+						if (FRAMES < 30)
+							FRAMES += 5;
+						window.setFramerateLimit(FRAMES);
+					}
 					break;
 			}
         }
@@ -158,6 +229,7 @@ int main(void){
 		window.draw(title);
 		window.draw(button_play);
 		window.draw(button_reset);
+		window.draw(button_randomize);
 
 		// Draw cell
 
