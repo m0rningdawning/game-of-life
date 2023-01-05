@@ -1,5 +1,5 @@
 # Conway's Game of Life
-The project was implemented on C++ using SFML library
+The project was implemented in C++ using SFML library
 ## Features
 – Ability to change framerate (15-30) using arrow up and down.  
 – Ability to clear the grid by pressing “C” on the keyboard or by clicking the onscreen “C” button.  
